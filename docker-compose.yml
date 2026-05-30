@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: task-tracker-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      MONGO_URI: mongodb://mongo:27017/tasktracker
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: mG?4>F/lLo%xpQL5jw]N.&PKtCU/zW$a[}^03o&iQ?{
+      JWT_REFRESH_SECRET: GR?wY>4],+CUFRy+%tcFMF+KOwHkA)l[^R>)CVRwa:t
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CACHE_TTL: 300
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo:7.0
+    container_name: task-tracker-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: task-tracker-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  app-network:
+    driver: bridge
